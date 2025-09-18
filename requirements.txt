@@ -1,0 +1,25 @@
+streamlit
+streamlit-drawable-canvas
+numpy
+opencv-python
+pillow
+reportlab
+sympy
+matplotlib
+torch
+torchvision
+pix2tex
+easyocr
+scikit-learn
+
+
+# streamlit
+# streamlit-drawable-canvas
+# numpy
+# opencv-python
+# transformers
+# torch
+# torchvision
+# pillow
+# easyocr
+# reportlab
