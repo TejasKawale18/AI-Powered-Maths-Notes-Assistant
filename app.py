@@ -1,6 +1,3 @@
-
-
-
 import streamlit as st
 from streamlit_drawable_canvas import st_canvas
 import easyocr
@@ -141,4 +138,7 @@ if canvas_result.image_data is not None:
                             st.pyplot(fig)
 
                 except Exception as e:
+
                     st.error(f"❌ **Could not solve.** The OCR may have failed or the expression is invalid.")
+
+#hiiiiiii
