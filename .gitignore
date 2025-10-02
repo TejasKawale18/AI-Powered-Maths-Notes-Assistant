@@ -1,0 +1,113 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+env/
+venv/
+.venv/
+.ENV/
+env.bak/
+venv.bak/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Jupyter Notebook checkpoints and outputs
+.ipynb_checkpoints/
+*.nbconvert.ipynb
+# optionally ignore all notebooks outputs
+# **/*.ipynb
+
+# Jupyter Lab user settings
+.jupyter/
+
+# Pytest cache
+.pytest_cache/
+
+# Coverage
+.coverage
+htmlcov/
+.coverage.*
+
+# Logs and runtime files
+*.log
+logs/
+tmp/
+temp/
+*.pid
+*.sock
+
+# Data files (large or sensitive) - adjust as needed
+data/
+datasets/
+*.csv
+*.tsv
+*.parquet
+*.feather
+
+# Model artifacts
+models/
+checkpoints/
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.ckpt
+*.joblib
+*.pkl
+*.pickle
+
+# ML tooling
+mlruns/         # mlflow
+wandb/          # Weights & Biases
+.tracking/
+
+# Environment / secrets
+.env
+.env.* 
+credentials.json
+aws_credentials
+*.pem
+*.key
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Notebook and output folders
+outputs/
+reports/
+results/
+
+# Git LFS pointer files (optional - if using LFS)
+# *.bin
+# *.npy
+
+# Lock files (if you store them elsewhere, remove)
+poetry.lock
+Pipfile.lock
