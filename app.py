@@ -13,8 +13,23 @@ from PIL import Image
 import io
 
 # Import enhanced OCR and data collection
-from enhanced_ocr import recognize_math_expression
-from data_collector import show_data_collection_interface, trigger_correction_interface
+try:
+    from enhanced_ocr import recognize_math_expression
+    from data_collector import show_data_collection_interface, trigger_correction_interface
+    from step_solver import StepByStepper
+except ImportError:
+    def recognize_math_expression(image_data):
+        return "", "", "Low"
+    def show_data_collection_interface():
+        pass
+    def trigger_correction_interface(image_data, ocr_output, suggested=""):
+        pass
+    
+    class StepByStepper:
+        def solve_step_by_step(self, expr_str):
+            return [f"**Problem:** {expr_str}", f"**Solution:** Calculate manually"]
+        def get_detailed_steps(self, expr_str):
+            return self.solve_step_by_step(expr_str)
 
 # Use st.cache_resource to load the model only once
 @st.cache_resource
@@ -62,7 +77,18 @@ def create_pdf(handwritten_image, cleaned_expr, solution_text):
 
 st.set_page_config(page_title="AI Math Notes", layout="wide")
 st.title("✏️ AI Math Notes (Apple-Style)")
-st.subheader("Write your math problem on the canvas below. Use / for division.")
+st.subheader("Write your math problem on the canvas below. Get step-by-step solutions!")
+
+# Add instructions
+with st.expander("ℹ️ **How to Use**"):
+    st.write("""
+    1. **Draw** your math expression on the canvas
+    2. **Click** "Recognize & Solve" to get OCR recognition
+    3. **View** step-by-step solution and final answer
+    4. **Correct** OCR mistakes using the sidebar if needed
+    
+    **Supported:** Basic arithmetic, algebra, trigonometry, equations
+    """)
 
 # Show data collection interface in sidebar
 show_data_collection_interface()
@@ -80,19 +106,20 @@ if canvas_result.image_data is not None:
         
         col1, col2 = st.columns(2)
         with col1:
-            st.subheader("Handwritten Input")
-            st.image(canvas_result.image_data)
+            st.subheader("✏️ Handwritten Input")
+            st.image(canvas_result.image_data, caption="Your handwritten math expression")
         
         with col2:
-            st.subheader("Recognition & Solution")
+            st.subheader("🔍 Recognition & Solution")
             with st.spinner("Analyzing and solving..."):
                 try:
                     # --- Enhanced OCR Pipeline ---
                     raw_ocr, cleaned_expr, confidence = recognize_math_expression(canvas_result.image_data)
                     
-                    st.write("**Raw OCR Output:**"); st.code(raw_ocr, language='text')
-                    st.write("**Cleaned Expression:**"); st.code(cleaned_expr, language='text')
-                    st.write(f"**Confidence:** {confidence}")
+                    with st.expander("🔍 **OCR Details**", expanded=False):
+                        st.write("**Raw OCR Output:**"); st.code(raw_ocr, language='text')
+                        st.write("**Cleaned Expression:**"); st.code(cleaned_expr, language='text')
+                        st.write(f"**Confidence:** {confidence}")
                     
                     # Store for data collection
                     st.session_state.last_image = canvas_result.image_data
@@ -100,7 +127,7 @@ if canvas_result.image_data is not None:
 
                     if not cleaned_expr:
                         st.error("⚠️ No valid math expression was detected.")
-                        # Trigger correction interface
+                        st.info("💡 **Tips:** Try writing more clearly or use the correction interface in the sidebar.")
                         trigger_correction_interface(canvas_result.image_data, raw_ocr)
                     else:
                         final_expr_str = convert_trig_degrees_to_radians(cleaned_expr)
@@ -109,36 +136,78 @@ if canvas_result.image_data is not None:
                         expr = sp.sympify(final_expr_str.replace("=", ""), locals=local_dict)
                         
                         st.markdown("---")
-                        st.write("**Solution:**")
+                        
+                        # Generate step-by-step solution
+                        try:
+                            solver = StepByStepper()
+                            steps = solver.solve_step_by_step(cleaned_expr)
+                            
+                            # Show steps in expandable section
+                            with st.expander("📝 **Step-by-Step Solution**", expanded=True):
+                                for step in steps:
+                                    st.write(step)
+                        except Exception as e:
+                            with st.expander("📝 **Step-by-Step Solution**", expanded=True):
+                                st.write(f"**Problem:** {cleaned_expr}")
+                                st.write(f"**Error:** Could not generate steps - {str(e)}")
+                        
+                        st.write("**Final Answer:**")
                         solution_text = ""
                         if not expr.free_symbols:
                             result = sp.N(expr)
                             solution_text = str(result)
                             st.success(f"## {solution_text}")
                         else:
-                             solution_text = "Plot generated for the expression."
+                             solution_text = "Expression with variables - see graph below."
                              st.info(solution_text)
 
-                        # --- NEW: Add the download button ---
-                        pdf_buffer = create_pdf(canvas_result.image_data, cleaned_expr, solution_text)
-                        st.download_button(
-                            label="📥 Save as PDF",
-                            data=pdf_buffer,
-                            file_name="math_note_solution.pdf",
-                            mime="application/pdf",
-                        )
+                        # --- Add the download button ---
+                        try:
+                            if 'steps' in locals():
+                                steps_text = "\n".join(steps)
+                            else:
+                                steps_text = f"Problem: {cleaned_expr}\nSolution: {solution_text}"
+                            pdf_buffer = create_pdf(canvas_result.image_data, cleaned_expr, f"{steps_text}\n\nFinal Answer: {solution_text}")
+                            st.download_button(
+                                label="📥 Save Solution as PDF",
+                                data=pdf_buffer,
+                                file_name="math_solution_with_steps.pdf",
+                                mime="application/pdf",
+                            )
+                        except:
+                            pass
 
                         if expr.free_symbols:
-                            st.markdown("---"); st.write("**Graph:**")
+                            st.markdown("---")
+                            
+                            # Show detailed analysis
+                            with st.expander("🔍 **Detailed Analysis**", expanded=False):
+                                try:
+                                    solver = StepByStepper()
+                                    detailed_steps = solver.get_detailed_steps(cleaned_expr)
+                                    for step in detailed_steps:
+                                        st.write(step)
+                                except:
+                                    st.write(f"**Variables:** {', '.join(str(v) for v in expr.free_symbols)}")
+                                    st.write(f"**Simplified:** {sp.simplify(expr)}")
+                            
+                            st.write("**Graph:**")
                             x = sp.symbols('x')
-                            f = sp.lambdify(x, expr, modules=['numpy', {'sin': np.sin, 'cos': np.cos, 'tan': np.tan}])
-                            x_vals = np.linspace(-10, 10, 400); y_vals = f(x_vals)
-                            fig, ax = plt.subplots(); ax.plot(x_vals, y_vals)
-                            ax.set_title(f"Graph of y = {expr}"); ax.grid(True)
-                            st.pyplot(fig)
+                            try:
+                                f = sp.lambdify(x, expr, modules=['numpy', {'sin': np.sin, 'cos': np.cos, 'tan': np.tan}])
+                                x_vals = np.linspace(-10, 10, 400); y_vals = f(x_vals)
+                                fig, ax = plt.subplots(figsize=(8, 6))
+                                ax.plot(x_vals, y_vals, 'b-', linewidth=2)
+                                ax.set_title(f"Graph of y = {expr}", fontsize=14)
+                                ax.grid(True, alpha=0.3)
+                                ax.axhline(y=0, color='k', linewidth=0.5)
+                                ax.axvline(x=0, color='k', linewidth=0.5)
+                                ax.set_xlabel('x', fontsize=12)
+                                ax.set_ylabel('y', fontsize=12)
+                                st.pyplot(fig)
+                            except:
+                                st.warning("Could not generate graph for this expression.")
 
                 except Exception as e:
-
                     st.error(f"❌ **Could not solve.** The OCR may have failed or the expression is invalid.")
-
-#hiiiiiii
+                    st.info("💡 **Tip:** Try writing more clearly or check the expression format.")
