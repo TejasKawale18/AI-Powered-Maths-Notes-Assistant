@@ -39,4 +39,4 @@ def image_to_latex(image_data):
 #         return latex.strip()
 #     except Exception as e:
 #         return f"Error: {str(e)}"
-gg
+yooo
