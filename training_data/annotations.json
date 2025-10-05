@@ -4,5 +4,11 @@
     "correct_text": "(3+4)*3=",
     "ocr_output": null,
     "timestamp": "20251004_132612"
+  },
+  {
+    "image": "sample_20251005_155035.png",
+    "correct_text": "(3^2 + 5^2)- 2^2 =",
+    "ocr_output": null,
+    "timestamp": "20251005_155035"
   }
 ]

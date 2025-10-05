@@ -8,9 +8,30 @@ sympy
 matplotlib
 torch
 torchvision
-pix2tex
+
+pix2tex (Keep for reference, but we are using transformers equivalent)
 easyocr
 scikit-learn
+
+--- New Hugging Face Dependencies for Advanced OCR ---
+transformers
+accelerate
+sentencepiece
+
+
+# streamlit
+# streamlit-drawable-canvas
+# numpy
+# opencv-python
+# pillow
+# reportlab
+# sympy
+# matplotlib
+# torch
+# torchvision
+# pix2tex
+# easyocr
+# scikit-learn
 
 
 # streamlit
