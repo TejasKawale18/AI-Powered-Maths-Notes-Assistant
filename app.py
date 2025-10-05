@@ -87,8 +87,7 @@ with st.expander("ℹ️ **How to Use**"):
     3. **View** step-by-step solution and final answer
     4. **Correct** OCR mistakes using the sidebar if needed
     
-    **Supported:** Basic arithmetic, algebra, trigonometry, equations
-    """)
+    
 
 # Show data collection interface in sidebar
 show_data_collection_interface()
