@@ -8,12 +8,11 @@ sympy
 matplotlib
 torch
 torchvision
-
-pix2tex (Keep for reference, but we are using transformers equivalent)
+google-cloud-vision
+wolframalpha
+# pix2tex (Keep for reference, but we are using transformers equivalent)
 easyocr
-scikit-learn
-
---- New Hugging Face Dependencies for Advanced OCR ---
+#scikit-learn--- New Hugging Face Dependencies for Advanced OCR ---
 transformers
 accelerate
 sentencepiece
@@ -44,4 +43,3 @@ sentencepiece
 # pillow
 # easyocr
 # reportlab
-yyyyy
