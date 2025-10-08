@@ -52,3 +52,4 @@ class StepByStepper:
             steps = [f"**An unexpected error occurred during solving:**", f"`{e}`"]
         
         return steps
+        steps = []

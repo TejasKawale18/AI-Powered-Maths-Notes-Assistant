@@ -23,28 +23,8 @@ post_processor = load_post_processor()
 
 # --- Page Configuration and UI Styling ---
 st.set_page_config(page_title="AI Math Notes", layout="wide")
-st.title("✏️ AI Math Notes (Apple-Style)")
-st.subheader("Write your math problem on the canvas below. Get step-by-step solutions!")
+st.title("✏️ AI Math Notes (Google Vision)")
 
-# Add instructions
-with st.expander("ℹ️ **How to Use**"):
-    st.write("""
-    1. **Draw** your math expression on the canvas
-    2. **Click** "Recognize & Solve" to get OCR recognition
-    3. **View** step-by-step solution and final answer
-    4. **Correct** OCR mistakes using the sidebar if needed
-    
-    **Supported:** Basic arithmetic, algebra, trigonometry, equations
-    """)
-
-# Show data collection interface in sidebar
-show_data_collection_interface()
-
-# ##################################################################
-# ############## STYLED UI FOR DRAWING TOOLS #######################
-# ##################################################################
-
-# Define custom CSS for a more polished look
 st.markdown("""
 <style>
     .toolbar-container {
