@@ -23,7 +23,7 @@ post_processor = load_post_processor()
 
 # --- Page Configuration and UI Styling ---
 st.set_page_config(page_title="AI Math Notes", layout="wide")
-st.title("✏️ AI Math Notes (Google Vision)")
+st.title("✏️ AI Math Notes")
 
 st.markdown("""
 <style>
