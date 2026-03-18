@@ -32,7 +32,8 @@ An AI-based assistant that:
 
 ## 📷 Demo / Output
 
-(Add screenshots here)
+![WhatsApp Image 2026-03-18 at 5 40 18 PM](https://github.com/user-attachments/assets/47c0dd32-2a72-4f45-885b-b1c13abb2c30)
+
 
 ## 🎯 Use Cases
 
