@@ -1,4 +1,4 @@
-🧠 AI-Powered Maths Notes Assistant
+## 🧠 AI-Powered Maths Notes Assistant
 
 ⭐ Generates step-by-step math explanations using AI in seconds
 
