@@ -1,5 +1,4 @@
 🧠 AI-Powered Maths Notes Assistant
-
 ⭐ Generates step-by-step math explanations using AI in seconds
 
 🚀 Live Demo: https://your-streamlit-link.streamlit.app
