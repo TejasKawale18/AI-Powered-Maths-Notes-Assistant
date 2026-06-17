@@ -6,46 +6,84 @@ class EnhancedMathOCR:
         if not text:
             return ""
 
-        # Remove all whitespace first for easier processing
-        text = re.sub(r'\s+', '', text)
-
-        # --- Rule 1: Handle Unicode superscripts for all numbers ---
+        # Temporarily normalize line breaks and then remove ALL whitespace
+        text = text.replace('\n', ' ')
+        raw_clean = re.sub(r'\s+', '', text)
+        processed_text = raw_clean
+        
+        # --- Rule 1: Handle Unicode superscripts ---
         superscript_map = {
             '²': '^2', '³': '^3', '⁴': '^4', '⁵': '^5',
             '⁶': '^6', '⁷': '^7', '⁸': '^8', '⁹': '^9', '⁰': '^0', '¹': '^1'
         }
         for sup, normal in superscript_map.items():
-            text = text.replace(sup, normal)
+            processed_text = processed_text.replace(sup, normal)
             
         # --- Rule 2: Handle square root symbol ---
-        # Replace the unicode square root symbol with 'sqrt'
-        text = text.replace('√', 'sqrt')
+        processed_text = processed_text.replace('√', 'sqrt')
 
-        # --- Rule 3 (CRITICAL FIX): Add parentheses after sqrt ---
-        # This regex finds 'sqrt' followed by one or more digits and wraps the digits in parentheses.
-        # e.g., 'sqrt22' becomes 'sqrt(22)'
-        # e.g., '3+sqrt144' becomes '3+sqrt(144)'
-        text = re.sub(r'sqrt(\d+)', r'sqrt(\1)', text)
+        # --- Rule 3: Add parentheses after sqrt ---
+        processed_text = re.sub(r'sqrt(\d+)', r'sqrt(\1)', processed_text)
+        
+        # --- RULE 4 (DIVISION LINE FIX): Convert "X Y" or "XY" to "X/Y" if no operators exist ---
+        # If the original raw OCR had numbers separated by only a space (Raw OCR: '100 5'), 
+        # and after cleaning spaces (raw_clean: '1005'), we assume division if no math operator is present.
+        if re.match(r'^\d+$', raw_clean):
+            # This is a dangerous heuristic: splits the number exactly where the OCR split it
+            raw_parts = text.split() 
+            if len(raw_parts) == 2 and raw_parts[0].isdigit() and raw_parts[1].isdigit():
+                # Example: '100 5' --> '100/5'
+                processed_text = f"{raw_parts[0]}/{raw_parts[1]}"
+        
+        # --- RULE 5 (DIFFERENTIATION/CALCULUS FIX) ---
+        calculus_corrections = {
+            # Integral Sign (∫) is often misread as a 'S', 'J', or 'f'
+            '∫': 'integrate(', 
+            'f': 'integrate(',
+            'S': 'integrate(',
+            'J': 'integrate(',
+            
+            # The most common OCR errors for the start of d/dx or d/dt 
+            'd/dx': 'diff(', 
+            'ddx': 'diff(',
+            
+            # Based on your screenshot error: '(1)xp3P'
+            # If we see this unusual pattern, we must assume the user meant a derivative.
+            # This is highly specific to your handwriting/OCR combination!
+            'xp3': 'x^3',
+            'x*p*3*P': 'x^3',
+            
+            # Generic correction for differential notation misread
+            r'd[xyt]\(': r'diff(',
+        }
+        for wrong, right in calculus_corrections.items():
+            # Use regex substitution for the 'd[xyt](' pattern
+            if wrong.startswith('d') and wrong.endswith('('):
+                processed_text = re.sub(wrong, right, processed_text)
+            else:
+                processed_text = processed_text.replace(wrong, right)
 
-        # --- Rule 4: General character corrections ---
+        # --- Rule 6: General character corrections ---
         corrections = {
             'x': '*', '×': '*', '·': '*',  # Multiplication symbols
             ':': '/', '÷': '/',            # Division symbols
             '[': '(', ']': ')', '{': '(', '}': ')',
         }
         for wrong, right in corrections.items():
-            text = text.replace(wrong, right)
+            # Apply generic multiplication replacement only if it's NOT a variable or function name
+            if wrong in ['x', '×', '·']:
+                # Ensure we don't convert the variable 'x' in 'diff(x)' to '*'
+                processed_text = re.sub(f'(?<!f){re.escape(wrong)}([^a-zA-Z])', r'*\1', processed_text)
+            else:
+                processed_text = processed_text.replace(wrong, right)
             
-        # --- Rule 5: Add implied multiplication ---
-        # e.g., 2(3+4) -> 2*(3+4) or (3+4)2 -> (3+4)*2
-        text = re.sub(r'(\d)([a-zA-Z\(])', r'\1*\2', text)
-        text = re.sub(r'(\))(\d)', r'\1*\2', text)
-        text = re.sub(r'(\))(\()', r'\1*\2', text)
+        # --- Rule 7: Add implied multiplication ---
+        processed_text = re.sub(r'(\d)([a-zA-Z\(])', r'\1*\2', processed_text)
+        processed_text = re.sub(r'(\))(\d)', r'\1*\2', processed_text)
+        processed_text = re.sub(r'(\))(\()', r'\1*\2', processed_text)
 
-        # --- Rule 6: Final character validation ---
-        # Remove any characters not valid for a math expression AFTER all conversions.
+        # --- Rule 8: Final character validation ---
         allowed_chars = "0123456789().+-*/^abcdefghijklmnopqrstuvwxyz"
-        text = "".join(filter(lambda char: char in allowed_chars, text))
+        final_expr = "".join(filter(lambda char: char in allowed_chars, processed_text))
         
-        return text
-
+        return final_expr

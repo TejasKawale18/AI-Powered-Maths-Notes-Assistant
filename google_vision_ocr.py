@@ -6,7 +6,7 @@ import streamlit as st
 
 # --- PASTE YOUR API KEY HERE ---
 # This key is now correctly defined.
-API_KEY = "AIzaSyA7NlZexBbpGkk4FNIYRzVQPxTrmHIbSik" 
+API_KEY = "AIzaSyAh8NZbdmHX8sCQCxlSeIPC-HLy2ZssVW8" 
 
 def recognize_with_google_vision(image_data):
     """
