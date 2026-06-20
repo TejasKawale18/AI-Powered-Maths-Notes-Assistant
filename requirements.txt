@@ -1,46 +1,4 @@
-streamlit
-streamlit-drawable-canvas
-numpy
-opencv-python
+Flask
 pillow
-reportlab
-sympy
-matplotlib
-torch
-torchvision
-google-cloud-vision
-wolframalpha
-# pix2tex (Keep for reference, but we are using transformers equivalent)
-easyocr
-#scikit-learn--- New Hugging Face Dependencies for Advanced OCR ---
-transformers
-accelerate
-sentencepiece
-
-
-# streamlit
-# streamlit-drawable-canvas
-# numpy
-# opencv-python
-# pillow
-# reportlab
-# sympy
-# matplotlib
-# torch
-# torchvision
-# pix2tex
-# easyocr
-# scikit-learn
-
-
-# streamlit
-# streamlit-drawable-canvas
-# numpy
-# opencv-python
-# transformers
-# torch
-# torchvision
-# pillow
-# easyocr
-# reportlab
-# yyyyy
+google-genai
+python-dotenv

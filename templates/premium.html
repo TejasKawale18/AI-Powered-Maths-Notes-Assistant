@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Math Notes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] } };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        
+        .glass-panel { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); color: white; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        .brand-text { background: linear-gradient(135deg, #60a5fa, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; font-size: 1.25rem; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; }
+
+        /* WHITEBOARD */
+        #whiteboardUI { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; display: block; }
+        canvas { cursor: crosshair; touch-action: none; display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+        #welcomeScreen { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; transition: opacity 0.4s ease-out; z-index: 10; }
+        #resultsPanel { position: fixed; top: 24px; right: 24px; bottom: 100px; width: 420px; border-radius: 16px; padding: 0; overflow: hidden; display: flex; flex-direction: column; transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); z-index: 50; }
+        #resultsPanel.active { transform: translateX(0); }
+        #toolbar { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 9999px; display: flex; gap: 16px; align-items: center; z-index: 50; }
+        .tool-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.1s; }
+        .tool-btn.active { border-color: #ffffff; transform: scale(1.1); box-shadow: 0 0 0 2px rgba(255,255,255,0.2); }
+        .action-btn { background: transparent; color: #9ca3af; padding: 8px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .solve-btn { background: white; color: black; padding: 10px 24px; border-radius: 9999px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+
+        /* CHAT */
+        #chatContainer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f9fafb; display: none; flex-direction: column; align-items: center; padding-top: 100px; z-index: 80; }
+        #chatHistory { width: 100%; max-width: 800px; flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
+        .chat-input-area { width: 100%; max-width: 800px; padding: 20px; margin-bottom: 20px; position: relative; }
+        #attachmentPreview { display: none; margin-bottom: 10px; padding: 10px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; display: flex; align-items: center; gap: 10px; }
+        #previewThumb { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; display: none; }
+        .chat-input-box { background: white; border: 1px solid #d1d5db; border-radius: 24px; padding: 12px 20px; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .chat-input { flex-grow: 1; border: none; outline: none; font-size: 1rem; padding: 8px 0; background: transparent; }
+        .icon-btn { color: #6b7280; cursor: pointer; padding: 8px; border-radius: 50%; transition: all 0.2s; border: none; background: transparent; }
+        .icon-btn:hover { background: #f3f4f6; color: #111827; }
+        .icon-btn.recording { color: #ef4444; background: #fee2e2; animation: pulse 1.5s infinite; }
+        .send-btn { background: #10b981; color: white; border-radius: 50%; padding: 10px; cursor: pointer; transition: background 0.2s; border: none; outline: none; }
+        .send-btn:hover { background: #059669; }
+
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        .gemini-output h1, .gemini-output h2, .gemini-output h3 { font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; color: #3b82f6; }
+        .gemini-output p, .gemini-output ul { margin-bottom: 1rem; line-height: 1.6; }
+        .gemini-output pre { background: #1f2937; color: white; padding: 1rem; border-radius: 8px; overflow-x: auto; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+
+    <div class="fixed top-6 left-6 z-[100] flex items-center gap-4">
+        <button onclick="toggleSidebar()" class="glass-panel p-3 rounded-xl hover:bg-white/10 transition-colors cursor-pointer shadow-lg border-white/20">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+        <div id="headerBrand" class="brand-text glass-panel px-4 py-2 rounded-xl transition-opacity duration-300" style="pointer-events: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg>
+            AI Math Notes
+        </div>
+    </div>
+
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-[105] hidden opacity-0 transition-opacity duration-300" onclick="toggleSidebar()"></div>
+    <div id="sidebar" class="fixed top-0 left-0 h-full w-72 glass-panel transform -translate-x-full transition-transform duration-300 z-[110] flex flex-col pt-8 px-4 shadow-2xl border-r border-white/10">
+        <div class="flex justify-between items-center mb-10 px-2 mt-16">
+            <div class="text-gray-400 font-bold uppercase tracking-wider text-sm">Workspaces</div>
+            <button onclick="toggleSidebar()" class="text-gray-400 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        </div>
+        
+        <button id="navCanvas" onclick="switchMode('canvas')" class="flex items-center gap-3 p-4 rounded-xl text-white mb-3 transition-colors bg-white/10 border border-white/20">
+            <span class="text-xl">🎨</span> <span class="font-bold">Canvas Whiteboard</span>
+        </button>
+        
+        <button id="navChat" onclick="switchMode('chat')" class="flex items-center gap-3 p-4 rounded-xl text-white transition-colors hover:bg-white/5 border border-transparent">
+            <span class="text-xl">💬</span> <span class="font-bold">GPT Chatbot</span>
+        </button>
+    </div>
+
+    <div id="whiteboardUI">
+        <canvas id="mathCanvas"></canvas>
+        <div id="welcomeScreen"><h1 class="text-4xl font-bold text-gray-800 tracking-tight mb-3">Draw your problem here</h1></div>
+        <div id="resultsPanel" class="glass-panel">
+            <div class="p-5 border-b border-gray-700 flex justify-between items-center bg-black bg-opacity-30">
+                <h2 class="text-lg font-bold flex items-center gap-3"><span class="w-2.5 h-2.5 rounded-full bg-green-400"></span> Solution</h2>
+                <button onclick="closeResults()" class="text-gray-400 hover:text-white">✕</button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-grow">
+                <div id="loading" class="hidden text-green-400 font-bold mb-4 animate-pulse flex flex-col items-center justify-center py-10 gap-4">Processing...</div>
+                <div id="errorBox" class="hidden bg-red-900 bg-opacity-40 border border-red-500 text-red-200 p-4 rounded-xl mb-4 text-sm font-medium"></div>
+                <div id="ocrResults" class="hidden mb-6 bg-white bg-opacity-5 p-4 rounded-xl border border-gray-700 shadow-inner">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">I saw this:</p>
+                    <div id="cleanedExpr" class="text-lg text-white font-medium"></div>
+                </div>
+                <div id="solutionBox" class="hidden gemini-output text-gray-200"></div>
+            </div>
+        </div>
+        <div id="toolbar" class="glass-panel">
+            <button class="tool-btn active" style="background-color: #000000;" onclick="setPen('#000000', this)"></button>
+            <button class="tool-btn" style="background-color: #ef4444;" onclick="setPen('#ef4444', this)"></button>
+            <button class="tool-btn" style="background-color: #3b82f6;" onclick="setPen('#3b82f6', this)"></button>
+            <button class="tool-btn" style="background-color: #10b981;" onclick="setPen('#10b981', this)"></button>
+            <div class="h-6 w-px bg-gray-600 mx-2"></div>
+            <button class="action-btn" onclick="setEraser(this)">Eraser</button>
+            <button class="action-btn" onclick="undo()">Undo</button>
+            <button class="action-btn text-red-400 hover:text-red-300" onclick="clearCanvas()">Clear</button>
+            <div class="h-6 w-px bg-gray-600 mx-2"></div>
+            <button class="solve-btn shadow-lg" id="solveBtn" onclick="solveMath()">✨ Solve</button>
+        </div>
+    </div>
+
+    <div id="chatContainer">
+        <div id="chatHistory">
+            <div class="flex items-start gap-4 mb-4">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-green-400 flex items-center justify-center text-white font-bold shadow-md shrink-0">AI</div>
+                <div class="bg-white border border-gray-200 p-4 rounded-2xl rounded-tl-none shadow-sm max-w-[80%]">
+                    <p class="text-gray-800">Hello! I'm your AI Math Assistant. You can type a question, upload a photo of a problem, or send a voice message. How can I help?</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-area">
+            <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+            
+            <div id="attachmentPreview">
+                <img id="previewThumb" src="" alt="preview">
+                <div id="previewText" class="text-sm text-blue-800 font-medium"></div>
+                <button onclick="clearAttachments()" class="ml-auto text-blue-500 hover:text-blue-800 font-bold px-2">✕</button>
+            </div>
+
+            <div class="chat-input-box">
+                <button class="icon-btn" title="Attach Photo" onclick="document.getElementById('imageInput').click()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                </button>
+                
+                <input type="text" id="chatInput" class="chat-input" placeholder="Message AI Math Notes..." onkeypress="if(event.key === 'Enter') sendChatMessage()">
+                
+                <button id="micBtn" class="icon-btn" title="Record Audio" onclick="toggleRecording()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></line></svg>
+                </button>
+
+                <button class="send-btn" title="Send Message" onclick="sendChatMessage()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- SIDEBAR & ROUTING ---
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        }
+
+        function switchMode(mode) {
+            const navCanvas = document.getElementById('navCanvas');
+            const navChat = document.getElementById('navChat');
+            const whiteboardUI = document.getElementById('whiteboardUI');
+            const chatContainer = document.getElementById('chatContainer');
+            const headerBrand = document.getElementById('headerBrand');
+
+            if (mode === 'canvas') {
+                navCanvas.classList.add('bg-white/10', 'border-white/20');
+                navCanvas.classList.remove('border-transparent', 'hover:bg-white/5');
+                navChat.classList.remove('bg-white/10', 'border-white/20');
+                navChat.classList.add('border-transparent', 'hover:bg-white/5');
+
+                whiteboardUI.style.display = 'block';
+                chatContainer.style.display = 'none';
+                
+                if (hasDrawn) {
+                    document.getElementById('welcomeScreen').style.opacity = '0';
+                    headerBrand.style.opacity = '0';
+                }
+            } else {
+                navChat.classList.add('bg-white/10', 'border-white/20');
+                navChat.classList.remove('border-transparent', 'hover:bg-white/5');
+                navCanvas.classList.remove('bg-white/10', 'border-white/20');
+                navCanvas.classList.add('border-transparent', 'hover:bg-white/5');
+
+                whiteboardUI.style.display = 'none';
+                chatContainer.style.display = 'flex';
+                headerBrand.style.opacity = '1'; 
+            }
+            toggleSidebar(); 
+        }
+
+        // --- MULTIMODAL CHAT LOGIC ---
+        let currentImageB64 = null;
+        let currentAudioB64 = null;
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentImageB64 = e.target.result;
+                document.getElementById('attachmentPreview').style.display = 'flex';
+                document.getElementById('previewThumb').style.display = 'block';
+                document.getElementById('previewThumb').src = currentImageB64;
+                document.getElementById('previewText').innerText = "Image attached";
+                currentAudioB64 = null; 
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function toggleRecording() {
+            const micBtn = document.getElementById('micBtn');
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.ondataavailable = e => { audioChunks.push(e.data); };
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const reader = new FileReader();
+                        reader.readAsDataURL(audioBlob);
+                        reader.onloadend = () => {
+                            currentAudioB64 = reader.result;
+                            document.getElementById('attachmentPreview').style.display = 'flex';
+                            document.getElementById('previewThumb').style.display = 'none';
+                            document.getElementById('previewText').innerText = "🎤 Voice note attached";
+                            currentImageB64 = null; 
+                        };
+                    };
+                    audioChunks = [];
+                    mediaRecorder.start();
+                    isRecording = true;
+                    micBtn.classList.add('recording'); 
+                } catch (err) {
+                    alert("Microphone access denied or not available.");
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                micBtn.classList.remove('recording'); 
+            }
+        }
+
+        function clearAttachments() {
+            currentImageB64 = null;
+            currentAudioB64 = null;
+            document.getElementById('imageInput').value = "";
+            document.getElementById('attachmentPreview').style.display = 'none';
+        }
+
+        async function sendChatMessage() {
+            const inputEl = document.getElementById('chatInput');
+            const message = inputEl.value.trim();
+            if (!message && !currentImageB64 && !currentAudioB64) return;
+
+            const chatHistory = document.getElementById('chatHistory');
+            let visualContent = `<p class="text-gray-800">${message}</p>`;
+            if (currentImageB64) visualContent += `<img src="${currentImageB64}" class="mt-2 rounded-lg max-h-40">`;
+            if (currentAudioB64) visualContent += `<p class="text-sm text-blue-500 mt-1 font-bold">🎤 Voice Note Sent</p>`;
+
+            const userHtml = `
+                <div class="flex items-start gap-4 mb-4 flex-row-reverse">
+                    <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-white font-bold shadow-md shrink-0">U</div>
+                    <div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl rounded-tr-none shadow-sm max-w-[80%]">
+                        ${visualContent}
+                    </div>
+                </div>
+            `;
+            chatHistory.insertAdjacentHTML('beforeend', userHtml);
+            
+            inputEl.value = ''; 
+            const payload = { message: message, image: currentImageB64, audio: currentAudioB64 };
+            clearAttachments();
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            const loadingId = 'loading-' + Date.now();
+            const loadingHtml = `
+                <div id="${loadingId}" class="flex items-start gap-4 mb-4">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-green-400 flex items-center justify-center text-white font-bold shadow-md shrink-0">AI</div>
+                    <div class="bg-white border border-gray-200 p-4 rounded-2xl rounded-tl-none shadow-sm max-w-[80%] flex items-center gap-2 h-14">
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    </div>
+                </div>
+            `;
+            chatHistory.insertAdjacentHTML('beforeend', loadingHtml);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                
+                document.getElementById(loadingId).remove();
+                let aiText = data.error ? `<span class="text-red-500">${data.error}</span>` : data.response;
+                const aiHtml = `
+                    <div class="flex items-start gap-4 mb-4">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-green-400 flex items-center justify-center text-white font-bold shadow-md shrink-0">AI</div>
+                        <div class="bg-white border border-gray-200 p-4 rounded-2xl rounded-tl-none shadow-sm max-w-[80%] gemini-output overflow-x-auto text-gray-800">
+                            ${marked.parse(aiText)}
+                        </div>
+                    </div>
+                `;
+                chatHistory.insertAdjacentHTML('beforeend', aiHtml);
+                
+                if (window.MathJax && !data.error) MathJax.typesetPromise();
+
+            } catch (err) {
+                document.getElementById(loadingId).remove();
+                chatHistory.insertAdjacentHTML('beforeend', `<div class="text-red-500 text-center mb-4">Server error. Check Python console.</div>`);
+            }
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        // --- WHITEBOARD LOGIC ---
+        const canvas = document.getElementById('mathCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const headerBrand = document.getElementById('headerBrand');
+        let isDrawing = false; let currentColor = '#000000'; let currentWidth = 6;
+        let undoStack = []; let hasDrawn = false;
+
+        function resizeCanvas() {
+            const tempStack = undoStack.length > 0 ? undoStack[undoStack.length - 1] : null;
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (tempStack) {
+                let img = new Image(); img.src = tempStack;
+                img.onload = () => ctx.drawImage(img, 0, 0);
+            }
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        function startDrawing(e) {
+            isDrawing = true;
+            if (!hasDrawn) { welcomeScreen.style.opacity = '0'; headerBrand.style.opacity = '0'; hasDrawn = true; }
+            saveState(); draw(e);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            ctx.lineWidth = currentWidth; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.strokeStyle = currentColor; ctx.lineTo(e.clientX, e.clientY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(e.clientX, e.clientY);
+        }
+
+        function stopDrawing() { if (isDrawing) { isDrawing = false; ctx.beginPath(); } }
+
+        function setPen(color, btn) {
+            currentColor = color; currentWidth = 6;
+            document.querySelectorAll('.tool-btn, .action-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function setEraser(btn) {
+            currentColor = '#FFFFFF'; currentWidth = 30;
+            document.querySelectorAll('.tool-btn, .action-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function saveState() {
+            undoStack.push(canvas.toDataURL());
+            if (undoStack.length > 25) undoStack.shift(); 
+        }
+
+        function undo() {
+            if (undoStack.length > 0) {
+                let imgData = undoStack.pop(); let img = new Image(); img.src = imgData;
+                img.onload = () => { ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(img, 0, 0); };
+            } else { clearCanvas(); }
+        }
+
+        function clearCanvas() {
+            saveState(); ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            closeResults(); welcomeScreen.style.opacity = '1'; headerBrand.style.opacity = '1'; hasDrawn = false;
+        }
+
+        function closeResults() { document.getElementById('resultsPanel').classList.remove('active'); }
+
+        async function solveMath() {
+            const btn = document.getElementById('solveBtn'); const panel = document.getElementById('resultsPanel');
+            const loading = document.getElementById('loading'); const errorBox = document.getElementById('errorBox');
+            const ocrBox = document.getElementById('ocrResults'); const cleanedExpr = document.getElementById('cleanedExpr');
+            const solutionBox = document.getElementById('solutionBox');
+
+            panel.classList.add('active'); errorBox.classList.add('hidden'); ocrBox.classList.add('hidden'); solutionBox.classList.add('hidden');
+            btn.disabled = true; btn.innerHTML = "Processing..."; loading.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/solve', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: canvas.toDataURL('image/png') })
+                });
+                const data = await response.json();
+                if (data.error) {
+                    errorBox.textContent = data.error; errorBox.classList.remove('hidden');
+                } else {
+                    cleanedExpr.innerHTML = marked.parse(data.cleaned_expr); ocrBox.classList.remove('hidden');
+                    solutionBox.innerHTML = marked.parse(data.solution); solutionBox.classList.remove('hidden');
+                    if (window.MathJax) MathJax.typesetPromise([cleanedExpr, solutionBox]);
+                }
+            } catch (err) {
+                errorBox.textContent = "Server error."; errorBox.classList.remove('hidden');
+            } finally {
+                btn.disabled = false; btn.innerHTML = "✨ Solve"; loading.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
