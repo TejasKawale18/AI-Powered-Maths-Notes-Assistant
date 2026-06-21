@@ -52,8 +52,8 @@
 </head>
 <body>
 
-    <div class="fixed top-6 left-6 z-[100] flex items-center gap-4">
-        <button onclick="toggleSidebar()" class="glass-panel p-3 rounded-xl hover:bg-white/10 transition-colors cursor-pointer shadow-lg border-white/20">
+    <div class="fixed top-6 left-6 z-[100] flex items-center gap-4" style="pointer-events: none;">
+        <button onclick="toggleSidebar()" class="glass-panel p-3 rounded-xl hover:bg-white/10 transition-colors cursor-pointer shadow-lg border-white/20" style="pointer-events: auto;">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
         </button>
         <div id="headerBrand" class="brand-text glass-panel px-4 py-2 rounded-xl transition-opacity duration-300" style="pointer-events: none;">
@@ -197,6 +197,19 @@
             toggleSidebar(); 
         }
 
+        // --- SHARED CHAT HELPERS ---
+        function createAIBubble(contentHtml, id = '') {
+            const idAttr = id ? ` id="${id}"` : '';
+            return `
+                <div${idAttr} class="flex items-start gap-4 mb-4">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-green-400 flex items-center justify-center text-white font-bold shadow-md shrink-0">AI</div>
+                    <div class="bg-white border border-gray-200 p-4 rounded-2xl rounded-tl-none shadow-sm max-w-[80%]">
+                        ${contentHtml}
+                    </div>
+                </div>
+            `;
+        }
+
         // --- MULTIMODAL CHAT LOGIC ---
         let currentImageB64 = null;
         let currentAudioB64 = null;
@@ -285,17 +298,14 @@
             chatHistory.scrollTop = chatHistory.scrollHeight;
 
             const loadingId = 'loading-' + Date.now();
-            const loadingHtml = `
-                <div id="${loadingId}" class="flex items-start gap-4 mb-4">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-green-400 flex items-center justify-center text-white font-bold shadow-md shrink-0">AI</div>
-                    <div class="bg-white border border-gray-200 p-4 rounded-2xl rounded-tl-none shadow-sm max-w-[80%] flex items-center gap-2 h-14">
-                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-                    </div>
+            const loadingContent = `
+                <div class="flex items-center gap-2 h-14">
+                    <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                    <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
                 </div>
             `;
-            chatHistory.insertAdjacentHTML('beforeend', loadingHtml);
+            chatHistory.insertAdjacentHTML('beforeend', createAIBubble(loadingContent, loadingId));
             chatHistory.scrollTop = chatHistory.scrollHeight;
 
             try {
@@ -308,15 +318,8 @@
                 
                 document.getElementById(loadingId).remove();
                 let aiText = data.error ? `<span class="text-red-500">${data.error}</span>` : data.response;
-                const aiHtml = `
-                    <div class="flex items-start gap-4 mb-4">
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-green-400 flex items-center justify-center text-white font-bold shadow-md shrink-0">AI</div>
-                        <div class="bg-white border border-gray-200 p-4 rounded-2xl rounded-tl-none shadow-sm max-w-[80%] gemini-output overflow-x-auto text-gray-800">
-                            ${marked.parse(aiText)}
-                        </div>
-                    </div>
-                `;
-                chatHistory.insertAdjacentHTML('beforeend', aiHtml);
+                const responseContent = `<div class="gemini-output overflow-x-auto text-gray-800">${marked.parse(aiText)}</div>`;
+                chatHistory.insertAdjacentHTML('beforeend', createAIBubble(responseContent));
                 
                 if (window.MathJax && !data.error) MathJax.typesetPromise();
 
@@ -368,15 +371,19 @@
 
         function stopDrawing() { if (isDrawing) { isDrawing = false; ctx.beginPath(); } }
 
+        function clearToolSelection() {
+            document.querySelectorAll('.tool-btn, .action-btn').forEach(b => b.classList.remove('active'));
+        }
+
         function setPen(color, btn) {
             currentColor = color; currentWidth = 6;
-            document.querySelectorAll('.tool-btn, .action-btn').forEach(b => b.classList.remove('active'));
+            clearToolSelection();
             btn.classList.add('active');
         }
 
         function setEraser(btn) {
             currentColor = '#FFFFFF'; currentWidth = 30;
-            document.querySelectorAll('.tool-btn, .action-btn').forEach(b => b.classList.remove('active'));
+            clearToolSelection();
             btn.classList.add('active');
         }
 
