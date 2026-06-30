@@ -351,25 +351,60 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
+        // --- Helper: Get coordinates for both Mouse and Touch ---
+        function getCoordinates(e) {
+            if (e.touches && e.touches.length > 0) {
+                return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+            return { x: e.clientX, y: e.clientY };
+        }
+
+        // --- Unified Drawing Functions ---
+        function startDrawing(e) {
+            if (e.type.includes('touch')) e.preventDefault(); // Stop scrolling
+            isDrawing = true;
+            if (!hasDrawn) { welcomeScreen.style.opacity = '0'; headerBrand.style.opacity = '0'; hasDrawn = true; }
+            saveState(); 
+            
+            const pos = getCoordinates(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            // Draw the initial dot just in case it's a tap
+            draw(e); 
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            if (e.type.includes('touch')) e.preventDefault(); // Stop scrolling
+            
+            const pos = getCoordinates(e);
+            ctx.lineWidth = currentWidth; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.strokeStyle = currentColor; 
+            ctx.lineTo(pos.x, pos.y); 
+            ctx.stroke();
+            
+            // Re-center path for smooth continuous lines
+            ctx.beginPath(); 
+            ctx.moveTo(pos.x, pos.y);
+        }
+
+        function stopDrawing(e) { 
+            if (e && e.type && e.type.includes('touch')) e.preventDefault();
+            if (isDrawing) { isDrawing = false; ctx.beginPath(); } 
+        }
+
+        // --- MOUSE LISTENERS ---
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', draw);
         canvas.addEventListener('mouseup', stopDrawing);
         canvas.addEventListener('mouseout', stopDrawing);
 
-        function startDrawing(e) {
-            isDrawing = true;
-            if (!hasDrawn) { welcomeScreen.style.opacity = '0'; headerBrand.style.opacity = '0'; hasDrawn = true; }
-            saveState(); draw(e);
-        }
+        // --- TOUCH LISTENERS ---
+        canvas.addEventListener('touchstart', startDrawing, { passive: false });
+        canvas.addEventListener('touchmove', draw, { passive: false });
+        canvas.addEventListener('touchend', stopDrawing, { passive: false });
+        canvas.addEventListener('touchcancel', stopDrawing, { passive: false });
 
-        function draw(e) {
-            if (!isDrawing) return;
-            ctx.lineWidth = currentWidth; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-            ctx.strokeStyle = currentColor; ctx.lineTo(e.clientX, e.clientY); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(e.clientX, e.clientY);
-        }
-
-        function stopDrawing() { if (isDrawing) { isDrawing = false; ctx.beginPath(); } }
 
         function clearToolSelection() {
             document.querySelectorAll('.tool-btn, .action-btn').forEach(b => b.classList.remove('active'));
