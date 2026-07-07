@@ -389,15 +389,6 @@ This project is developed for educational and research purposes.
 
 ---
 
-# 👨‍💻 Authors
-
-**Tejas Kawale**
-
-GitHub:
-https://github.com/TejasKawale18
-
----
-
 <div align="center">
 
 ### !! Thank You for Visiting !!
