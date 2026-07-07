@@ -398,18 +398,8 @@ https://github.com/TejasKawale18
 
 ---
 
-# ⭐ If you like this project
-
-Please consider giving the repository a ⭐
-
-It motivates future improvements and supports the project.
-
----
-
 <div align="center">
 
-### ⭐ Thank You for Visiting ⭐
-
-Made with ❤️ using Flask, Gemini 2.5 Flash & Artificial Intelligence
+### !! Thank You for Visiting !!
 
 </div>
